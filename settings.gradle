@@ -1,0 +1,2 @@
+rootProject.name = 'baigan'
+include 'core', 'file', 's3', 'etcd', 'spring', 'spring-boot-autoconfigure', 'spring-boot-starter', 'example'

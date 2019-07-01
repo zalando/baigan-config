@@ -1,184 +1,122 @@
 # Baigan configuration
 
-[![Maven Central](https://img.shields.io/maven-central/v/org.zalando/baigan-config.svg)](https://maven-badges.herokuapp.com/maven-central/org.zalando/baigan-config)[![CircleCI](https://circleci.com/gh/zalando-incubator/baigan-config.svg?style=shield&circle-token=d3cb5dad51c94e1064d9d41c7b9d454535055d6d)](https://circleci.com/gh/zalando-incubator/baigan-config)
+[![Maven Central](https://img.shields.io/maven-central/v/org.zalando/baigan-config.svg)](https://maven-badges.herokuapp.com/maven-central/org.zalando/baigan-config)
+[![Build Status](https://img.shields.io/travis/lukasniemeier-zalando/baigan-config/master.svg)](https://travis-ci.org/lukasniemeier-zalando/baigan-config)
 
-Baigan configuration is an easy to use configuration framework for [Spring](https://spring.io/) based applications.
+Baigan configuration is an easy to use framework for Java applications allowing you to store and fetch runtime configuration.
 
-What makes Baigan a rockstar configuration framework ?
+Its simple but extensible interfaces allow for powerful integrations.
 
-* *Simple*: Using Baigan configurations is as simple as annotating a Java interface.
-* *Extensible*: Extend configurations, create rules, define types that suit you.
-* *Flexible*: Baigan is a client library that can read configurations from multiple repositories:
-	* Filesystem
-	* Github
-	* AWS S3
-	* Etcd
+* fetch your configuration from arbitrary sources serving any format (e.g. local files, S3, etcd ...)
+* integrate with the [Spring Framework](https://spring.io/) enabling access to your configuration by simply annotating an interface.
+* integrate with Baigan configuration in seconds, via the provided [Spring Boot](https://spring.io/projects/spring-boot) Auto-configuration library
 
-## Prerequisites
-- Java 1.8
-- Spring framework
-- AWS SDK
+## Usage
 
-## Getting started
+The following example makes use of the [File](file), [S3](s3), [etcd](etcd) and [Spring Boot](spring-boot-autoconfigure) module.
 
-### To build the project run:
+Usage of Baigan configuration is as easy as:
 
-```bash
-    mvn clean install -Pintegration-test
 ```
-
-### Integrating Baigan config
-Baigan config is a spring project. The larger part of integration involves configuring beans to facilitate the spring beans.
-
-#### Configuring components and Configuration interface scanning.
-
-```Java
-
-import org.zalando.baigan.BaiganSpringContext;
-
-@ComponentScan(basePackageClasses = {BaiganSpringContext.class })
-@ConfigurationServiceScan(basePackages = {"com.foo.configurations" })
-public class Application {
+@BaiganConfiguration
+interface ServiceConfiguration {
+    String serviceName();
 }
-```
 
-The _BaiganSpringContext_ class includes the Baigan-Config beans required to be loaded into the spring application context.
-And the _@ConfigurationServiceScan_ annotation hints the Baigan registrar to look into the packages where the _@BaiganConfig_ annotated interfaces could be found.
+@Component
+class Service {
 
-#### Annotate your configuration interfaces with _@BaiganConfig_
+    @Autowired
+    private ServiceConfiguration configuration;
 
-```Java
-	@BaiganConfig
-	public interface ExpressFeature {
-
-	    public Boolean enabled();
-
-	    public String serviceUrl();
-
-	}
-```
-
-The above example code enables the application to inject _ExpressFeature_ spring bean into any other Spring bean:
-
-```Java
-	@Component
-	public class ExpressServiceImpl implements ExpressService{
-
-		@Inject
-		private ExpressFeature expressFeature;
-
-		@Override
-		public void sendShipment(final Shipment shipment){
-			if (expressFeature.enabled()){
-				final String serviceUrl = expressFeature.serviceUrl();
-				// Use the configuration
-			}
-		}
-	}
-```
-
-### Creating configurations
-Baigan configurations follow a specific schema and can be stored on any of the supported repositories.
-
-#### Configuration schema
-Configurations are stored in its simplest form as key values.
-A configuration is a pair of a dot(.) separated key and a value objects in JSON format.
-
-A configuration object should conform to the following JSON Schema:
-
-```json
-{
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "Configuration",
-    "description": "A baigan configuration object value.",
-    "type": "object",
-    "properties": {
-        "alias": {
-            "description": "The identifier for the configuration, same as its key.",
-            "type": "string"
-        },
-         "description": {
-            "description": "Summary of the configuration.",
-            "type": "string"
-        },
-         "defaultValue": {
-            "description": "Default configuration if none of the condition is satisfied.",
-            "type": {}
-        },
-         "conditions": {
-            "description": "List of conditions to check",
-            "type": "array",
-            "items": {
-            	"type": "object",
-            	"properties": {
-                    "value": {
-                        "description": "Configuration value if this condition evaluates to true.",
-                        "type": {}
-                    },
-            		"conditionType": {
-                        "description": "Type of condition to evaluate. This can be custom defined, with custom defined properties.",
-                        "type": "object",
-                    }
-                }
-            }
-        }
-    },
-    "required": ["defaultValue"]
-}
-```
-
-#### Example configurations
-
-This sample JSON defines a configuration for the key `express.feature.enabled` with the value _true_ when the _country_code_ is 3, and a default value of _false_.
-
-```json
-{
-  "alias": "express.feature.enabled",
-  "description": "Feature toggle",
-  "defaultValue": false,
-  "conditions": [
-    {
-      "value": true,
-      "conditionType": {
-        "onValue": "3",
-        "type": "Equals"
-      },
-      "paramName": "country_code"
+    public String whoAmI() {
+        return configuration.serviceName();
     }
-  ]
 }
+
 ```
 
-#### Pushing configuration to repositories
-This step depends on the chosen repository. 
+Serving of such runtime configuration is done via a simple `configuration.yaml`:
 
-##### Filesystem
-Save a file named express-feature.json with the content above anywhere on the filesystem and bundle it as part of your application. To use it just specify the classpath in the constructor.
+```
+ServiceConfiguration:
+  serviceName:
+    value: My Example Service
+    description: Defining the service's name.
+```
 
-##### Github
-Save a file named express-feature.json with the content above and push it to any Github repository. To use it just provide the required Github  settings to the provider. Github Enterprise is also supported.
+Ultimately add the following to your `application.yaml`:
 
-##### AWS S3
-Save a file named express-feature.json with the content above and upload it to any S3 bucket. To use it just provide the bucket name and the object key.
+```
+baigan:
+  store:
+    type: local-file
+    cache: PT1M
+    path: configuration.yaml
+    format: yaml
+```
 
-##### Etcd
-To create a key in etcd, you can either use etcdctl or the good old curl in the following way.
-Save a file named express-feature.json with the content above and push it to your etcd cluster:
+## Concepts
 
-With [etcdctl v2](https://github.com/coreos/etcd/blob/master/etcdctl/READMEv2.md):
+At its core, Baigan configuration defines two entities.
+
+- `Configuration` represents the runtime configuration. It's accessible by its `key` and holds a corresponding `value`. 
+In order to facilitate documentation, a configuration object must have a `description`.
+- `ConfigurationStore` represents a collection of configuration objects. 
+A configuration store is organizing the held configuration objects in *namespaces*.
+
+Implementations of `ConfigurationStore` may serve configuration objects from arbitrary sources, e.g. memory, local files, S3 buckets, databases.
+Looking up a `Configuration` by its key, may involve traversing a *chain* of `ConfigurationStores` (allowing you to define *fallback* stores) or
+is routed by the *namespace* (allowing you to define different sources per namespace).
+
+## Integrations
+
+Baigan configuration comes with a set of powerful integrations.
+
+* The [Spring](spring) module enables accessing configuration via annotated interfaces in Spring applications.
+* The [Spring Boot](spring-boot-autoconfigure) module simplifies configuration in Spring applications.
+* The [File](file) module provides a `ConfigurationStore` implementation serving from JSON and YAML files.
+* The [S3](s3) module allows for fetching configuration files from S3 buckets.
+* The [etcd](etcd) module allows using an etcd cluster as the configuration backend.
+
+## Migration
+
+If you wish to migrate your Spring application from Baigan configuration `0.14.x` and lower there are a few steps to follow.
+
+1. Transform your current Baigan *configuration files* into the new format. 
+
+You may start with the following [jq](https://stedolan.github.io/jq/manual/) script. What's left is "extracting" your namespaces. 
+
+```
+$ jq '.[] | { (.alias): { description: .description, value: .defaultValue } }'
+```
+
+See the [File](file) module for more information about the new format.
+
+2. Remove usage of the old Spring annotations referencing `BaiganSpringContext` and `ConfigurationServiceScan`. 
+Also rename any usage of `@BaiganConfig` to `@BaiganConfiguration`.
+
+3. Replace any definition of a `ConfigurationRepository` bean with a `ConfigurationStore`. 
+
+4. Register Baigan configuration in your Spring context
+    
+    a. Either manually via `@EnableBaigan` of the [Spring](spring) module...
+    
+    b. ... or automatically via the  [Spring Boot](spring-boot-autoconfigure) module.
+    
+**Remarks**:
+
+Currently not yet supported features of Baigan configuration `0.14.x` are:
+
+* context-dependent configuration values via "conditions".
+* serving *configuration files* from Git repositories.
+
+## Development
+
+To build the project run
+
 ```bash
-etcdctl set express.feature.enabled < express-feature.json 
+$ ./gradlew clean check
 ```
 
-With curl:
-```bash
-curl -v -XPUT http://127.0.0.1:2379/v2/keys/express.feature.enabled -d value="$(cat express-feature.json)"
-```
-
-## License
-
-Copyright 2016 Zalando SE
-
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0.
-
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+Be aware that the build requires Docker.

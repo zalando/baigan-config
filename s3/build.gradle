@@ -1,0 +1,5 @@
+dependencies {
+    implementation project(':file')
+
+    implementation group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: versions.aws
+}

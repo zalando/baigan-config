@@ -1,0 +1,4 @@
+ExampleConfiguration:
+  someText:
+    value: hello world
+    description: foobar

@@ -1,0 +1,5 @@
+baigan:
+  store:
+    type: file
+    location: src/test/resources/configuration.yaml
+    format: YAML

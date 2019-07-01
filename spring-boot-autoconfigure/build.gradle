@@ -1,0 +1,14 @@
+dependencies {
+    api project(':spring')
+    compileOnly project(':file')
+    compileOnly project(':s3')
+    compileOnly project(':etcd')
+
+    implementation group: 'org.springframework.boot', name: 'spring-boot-autoconfigure', version: versions.springboot
+    annotationProcessor group: 'org.springframework.boot', name: 'spring-boot-configuration-processor', version: versions.springboot
+
+    testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: versions.springboot
+    testRuntimeOnly project(':file')
+    testRuntimeOnly project(':s3')
+    testRuntimeOnly project(':etcd')
+}

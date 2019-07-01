@@ -1,0 +1,33 @@
+baigan:
+  store:
+    type: namespaced
+    stores:
+      Business:
+        type: file
+        cache: 2m
+        location: src/test/resources/configuration.json
+        format: json
+      ServiceConfiguration:
+        type: chained
+        stores:
+          - type: file
+            lazy: true
+            cache: 5s
+            location: s3://my-bucket/my-key
+            format: yaml
+          - type: etcd
+            style: configuration-file
+            lazy: true
+            cache: PT15M
+            location: http://localhost/v2/keys/file
+            format: yaml
+          - type: file
+            cache: PT1M
+            location: src/test/resources/configuration.yaml
+            format: yaml
+          - type: etcd
+            style: configuration-key
+            lazy: true
+            cache: PT2M
+            location: http://localhost/v2/
+            format: yaml

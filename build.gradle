@@ -1,0 +1,52 @@
+plugins {
+    id 'io.codearte.nexus-staging' version '0.21.0'
+}
+
+def baiganVersion = file("version").text.trim()
+
+ext.versions = [
+        junit     : '5.4.2',
+        spring    : '5.1.8.RELEASE',
+        springboot: '2.1.6.RELEASE',
+        jackson   : '2.9.9',
+        aws       : '1.11.582',
+        mockito   : '2.28.2',
+        slf4j     : '1.7.26',
+]
+
+subprojects {
+    apply plugin: 'java-library'
+
+    group = 'org.zalando.baigan'
+    version = baiganVersion
+
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+
+    compileTestJava {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        implementation group: 'org.slf4j', name: 'slf4j-api', version: versions.slf4j
+
+        testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: versions.junit
+        testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: versions.junit
+        testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: versions.mockito
+
+        testRuntimeOnly group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: versions.junit
+    }
+}
+
+if (project.hasProperty('release')) {
+    apply from: 'release.gradle'
+}

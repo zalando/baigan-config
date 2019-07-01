@@ -1,0 +1,16 @@
+version: '2'
+services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.1.20
+    entrypoint: /usr/local/bin/etcd
+    command: ['--name=etcd',
+              '--listen-client-urls=http://etcd:2379,http://localhost:2379',
+              '--advertise-client-urls=http://etcd:2379']
+    ports:
+      - 2379
+    expose:
+      - 2379
+    volumes:
+      - etcd:/etcd_data
+volumes:
+  etcd:
