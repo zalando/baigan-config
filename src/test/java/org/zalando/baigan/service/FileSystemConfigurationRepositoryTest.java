@@ -12,7 +12,7 @@ public class FileSystemConfigurationRepositoryTest {
 
     @Test
     public void testReadConfigurationsFromFile() {
-        final ConfigurationRepository repo = new FileSystemConfigurationRepository(3, "src/test/resources/example.json");
+        final ConfigurationRepository repo = new FileSystemConfigurationRepository("src/test/resources/example.json", 3);
         assertThat(repo.get("express.feature.toggle").get().getDefaultValue(), Matchers.equalTo(false));
     }
 }

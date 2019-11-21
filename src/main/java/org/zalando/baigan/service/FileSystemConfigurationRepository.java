@@ -11,6 +11,7 @@ import org.zalando.baigan.model.Configuration;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,26 +34,20 @@ public class FileSystemConfigurationRepository extends AbstractConfigurationRepo
     private Logger LOG = LoggerFactory
             .getLogger(FileSystemConfigurationRepository.class);
 
-    public FileSystemConfigurationRepository(long refreshIntervalInMinutes,
-                                             final String fileName) {
+    public FileSystemConfigurationRepository(final String fileName, long refreshIntervalInSeconds) {
         this.fileName = fileName;
 
         cachedConfigurations = CacheBuilder.newBuilder()
-                .refreshAfterWrite(refreshIntervalInMinutes, TimeUnit.MINUTES)
+                .refreshAfterWrite(refreshIntervalInSeconds, TimeUnit.SECONDS)
                 .build(new CacheLoader<String, Map<String, Configuration>>() {
                     @Override
-                    public Map<String, Configuration> load(String key)
-                            throws Exception {
-                        final String configurationText = loadResource(key);
-                        final Collection<Configuration> configurations = getConfigurations(
-                                configurationText);
-
-                        final ImmutableMap.Builder<String, Configuration> builder = ImmutableMap.builder();
-                        for (Configuration each : configurations) {
-                            builder.put(each.getAlias(), each);
+                    public Map<String, Configuration> load(String filename) {
+                        try {
+                            return loadConfigurations(filename);
+                        } catch (final Exception e) {
+                            LOG.error("Failed to refresh file configuration, keeping old state.", e);
+                            throw e;
                         }
-
-                        return builder.build();
                     }
 
                     @Override
@@ -63,6 +58,7 @@ public class FileSystemConfigurationRepository extends AbstractConfigurationRepo
                         return super.reload(key, oldValue);
                     }
                 });
+        cachedConfigurations.put(fileName, loadConfigurations(fileName));
     }
 
     @Nonnull
@@ -71,9 +67,8 @@ public class FileSystemConfigurationRepository extends AbstractConfigurationRepo
         try {
             return Optional.ofNullable(cachedConfigurations.get(fileName).get(key));
         } catch (ExecutionException e) {
-            LOG.warn("Exception while trying to get configuration for key {}", key, e);
+            throw new RuntimeException("Exception while trying to get configuration for key " + key, e);
         }
-        return Optional.empty();
     }
 
     @Override
@@ -81,9 +76,26 @@ public class FileSystemConfigurationRepository extends AbstractConfigurationRepo
         throw new UnsupportedOperationException();
     }
 
-    public String loadResource(final String file) throws IOException {
-        final Path filePath = Paths.get(file);
-        final String contents = new String(Files.readAllBytes(filePath));
-        return contents;
+
+    protected Map<String, Configuration> loadConfigurations(String filename) {
+        final String configurationText = loadResource(filename);
+        final Collection<Configuration> configurations = getConfigurations(
+                configurationText);
+
+        final ImmutableMap.Builder<String, Configuration> builder = ImmutableMap.builder();
+        for (Configuration each : configurations) {
+            builder.put(each.getAlias(), each);
+        }
+
+        return builder.build();
+    }
+
+    protected String loadResource(final String file) {
+        try {
+            final Path filePath = Paths.get(file);
+            return new String(Files.readAllBytes(filePath));
+        } catch (final IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

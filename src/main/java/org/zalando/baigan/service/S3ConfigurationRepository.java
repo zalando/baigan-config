@@ -1,11 +1,5 @@
 package org.zalando.baigan.service;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.kms.AWSKMS;
-import com.amazonaws.services.kms.AWSKMSClient;
-import com.amazonaws.services.kms.model.DecryptRequest;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.ImmutableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,8 +7,6 @@ import org.zalando.baigan.model.Configuration;
 import org.zalando.baigan.service.aws.S3FileLoader;
 
 import javax.annotation.Nonnull;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -33,7 +25,7 @@ public class S3ConfigurationRepository extends AbstractConfigurationRepository {
     private static final long DEFAULT_REFRESH_INTERVAL = 60;
 
     private final S3FileLoader s3Loader;
-    private long refreshInterval = DEFAULT_REFRESH_INTERVAL;
+    private long refreshInterval;
     private volatile Map<String, Configuration> configurationsMap = ImmutableMap.of();
 
     /**
@@ -87,7 +79,7 @@ public class S3ConfigurationRepository extends AbstractConfigurationRepository {
                     try {
                         loadConfigurations();
                     } catch (RuntimeException e) {
-                        LOG.warn("Failed to refresh S3 configuration", e);
+                        LOG.error("Failed to refresh S3 configuration, keeping old state.", e);
                     }
                 }, this.refreshInterval, this.refreshInterval,
                 TimeUnit.SECONDS);

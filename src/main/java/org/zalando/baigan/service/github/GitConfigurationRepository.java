@@ -17,8 +17,11 @@ import java.util.concurrent.TimeUnit;
  * Implementation of {link ConfigurationRepository} supporting Github as
  * the persistence storage for the baigan configuration.
  *
+ * Deprecated since 0.16.0, use some more reliable repository.
+ *
  * @author mchand
  */
+@Deprecated
 public class GitConfigurationRepository extends AbstractConfigurationRepository {
     private static final Logger LOG = LoggerFactory.getLogger(GitConfigurationRepository.class);
 
