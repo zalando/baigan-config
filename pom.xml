@@ -40,7 +40,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jackson.version>2.6.1</jackson.version>
         <junit.version>4.11</junit.version>
-        <spring.version>4.2.1.RELEASE</spring.version>
+        <spring.version>5.2.7.RELEASE</spring.version>
         <guava.version>18.0</guava.version>
         <slf4j.version>1.7.12</slf4j.version>
         <mockito.version>1.10.19</mockito.version>
